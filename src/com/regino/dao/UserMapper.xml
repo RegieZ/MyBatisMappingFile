@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.regino.dao.UserMapper">
+    <!--
+        返回主键，方式一 useGeneratedKeys属性
+            useGeneratedKeys="true" 开启新增主键返回功能
+            keyColumn="id"  user表中主键列
+            keyProperty="id" user实体主键属性
+
+            注意：仅支持主键自增类型的数据库 MySQL 和 SqlServer ， oracle不支持
+
+    -->
+    <insert id="save1" parameterType="User" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        insert into user(username,birthday,sex,address)
+          values(#{username},#{birthday},#{sex},#{address})
+    </insert>
+
+    <!--
+        返回主键，方式二  <selectKey>
+             keyColumn="id" user表中主键列
+             keyProperty="id" user实体主键属性
+             resultType="int" user实体主键属性类型
+             order="AFTER"  表示此标签内部sql语句在insert执行之前（执行），还是之后执行（执行）
+                AFTER 之后执行（在自增主键时，这里是新增，所以使用AFTER)
+                BEFORE 之前执行（使用指定主键时，例如更新时使用）
+
+    -->
+    <insert id="save2" parameterType="User" >
+        <selectKey keyColumn="id" keyProperty="id" resultType="int" order="BEFORE">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into user(username,birthday,sex,address)
+        values(#{username},#{birthday},#{sex},#{address})
+    </insert>
+
+    <!--
+    if标签 条件判断
+    where标签
+        相当于 where 1=1 功能，
+        如果没有条件情况下 where语句不在sql语句拼接，
+        可以去掉第一个 and 或者 or
+    -->
+    <select id="findByIdAndUsernameIf" parameterType="User" resultType="User">
+        select * from user
+        <where>
+            <if test="id != null">
+                and id= #{id}
+            </if>
+            <if test="username !=null">
+                and username = #{username}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        set标签 更新 ，将条件中的最后一个逗号抹除
+    -->
+    <update id="updateIf" parameterType="User">
+        update user
+        <set>
+            <if test="username !=null">
+                username = #{username} ,
+            </if>
+            <if test="birthday !=null">
+                birthday = #{birthday} ,
+            </if>
+            <if test="sex !=null">
+                sex = #{sex} ,
+            </if>
+            <if test="address != null">
+                address = #{address},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--
+        foreach标签，普通list集合
+            传递 普通类型list集合   collection="list" 属性取值：collection、list
+    -->
+    <select id="findByList" parameterType="list" resultType="User">
+        <include refid="selectUser"></include> where id in
+        <foreach collection="list" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!--
+        foreach标签，普通array数组
+            传统 普通类型array数组  collection="array" 属性取值 array
+    -->
+    <select id="findByArray" parameterType="int" resultType="User">
+        <include refid="selectUser"></include> where id in
+        <foreach collection="array" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!--
+        foreach标签，实体属性list集合
+            传递 实体中list属性集合的话，collection="ids" 取值，实体的属性名
+    -->
+    <select id="findByQueryVo" parameterType="QueryVo" resultType="User">
+        <include refid="selectUser"></include> where id in
+        <foreach collection="ids" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!--
+    将当前映射文件的共同的sql代码抽取一个片段，实现sql的复用性...
+     id="selectUser" 当前sql片段的唯一标识
+    -->
+    <sql id="selectUser">
+         select id,username,birthday,sex,address from user
+    </sql>
+</mapper>
